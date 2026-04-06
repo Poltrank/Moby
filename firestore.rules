@@ -1,0 +1,104 @@
+// ===============================================================
+// Assumed Data Model
+// ===============================================================
+//
+// Collection: users
+// Document ID: userId (Firebase Auth UID)
+// Fields:
+//   - nickname: string (required, 1-50 chars)
+//   - phone: string (required, 10-15 chars)
+//   - rankingOptIn: bool (optional)
+//   - weeklyEarnings: number (optional, >= 0)
+//   - monthlyEarnings: number (optional, >= 0)
+//
+// Collection: daily_records
+// Document ID: auto-generated
+// Fields:
+//   - userId: string (required, matches Auth UID)
+//   - date: string (required, YYYY-MM-DD format)
+//   - expenses: map (required, keys: food, fuel, maintenance)
+//   - earnings: map (required, keys: uber, 99, indriver, zoop, muvi, private)
+//   - totalPositive: number (required)
+//   - totalNegative: number (required)
+//   - balance: number (required)
+//
+// ===============================================================
+
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ===============================================================
+    // Helper Functions
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    function isDocOwner() {
+      return isAuthenticated() && request.auth.uid == resource.data.userId;
+    }
+
+    function isValidUser(data) {
+      return data.nickname is string && data.nickname.size() > 0 && data.nickname.size() <= 50 &&
+             data.phone is string && (data.phone.size() == 0 || (data.phone.size() >= 10 && data.phone.size() <= 15)) &&
+             (!('vehicleType' in data) || (data.vehicleType in ['Combustão', 'Elétrico'])) &&
+             (!('carModel' in data) || (data.carModel is string && data.carModel.size() <= 100)) &&
+             (!('rankingOptIn' in data) || data.rankingOptIn is bool) &&
+             (!('weeklyEarnings' in data) || data.weeklyEarnings is number) &&
+             (!('monthlyEarnings' in data) || data.monthlyEarnings is number);
+    }
+
+    function isValidDailyRecord(data) {
+      return data.userId == request.auth.uid &&
+             data.date is string && data.date.matches("^\\d{4}-\\d{2}-\\d{2}$") &&
+             data.expenses is map &&
+             data.expenses.keys().hasOnly(['food', 'fuel', 'maintenance']) &&
+             data.earnings is map &&
+             data.earnings.keys().hasOnly(['uber', '99', 'indriver', 'zoop', 'muvi', 'private']) &&
+             data.totalPositive is number &&
+             data.totalNegative is number &&
+             data.balance is number;
+    }
+
+    // ===============================================================
+    // Rules
+    // ===============================================================
+
+    match /users/{userId} {
+      // Users can only read and write their own private profile.
+      allow read: if isOwner(userId);
+      allow write: if isOwner(userId) && isValidUser(request.resource.data);
+    }
+
+    match /ranking/{userId} {
+      // Anyone authenticated can read the ranking.
+      allow read: if isAuthenticated();
+      
+      // Only the owner can update their own ranking entry.
+      // We validate that they only update non-sensitive fields.
+      allow create, update: if isOwner(userId) && 
+        request.resource.data.nickname is string && 
+        request.resource.data.nickname.size() > 0 &&
+        request.resource.data.weeklyEarnings is number &&
+        request.resource.data.monthlyEarnings is number;
+      
+      allow delete: if isOwner(userId);
+    }
+
+    match /daily_records/{recordId} {
+      // Only the owner can read their records.
+      allow read: if isAuthenticated() && (resource == null || resource.data.userId == request.auth.uid);
+      
+      // Only the owner can create, update, or delete their records.
+      allow create: if isAuthenticated() && isValidDailyRecord(request.resource.data);
+      allow update: if isAuthenticated() && isDocOwner() && isValidDailyRecord(request.resource.data);
+      allow delete: if isAuthenticated() && isDocOwner();
+    }
+  }
+}

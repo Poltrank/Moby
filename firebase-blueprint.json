@@ -1,0 +1,61 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "Driver profile information",
+      "type": "object",
+      "properties": {
+        "nickname": { "type": "string", "description": "Nome ou apelido do motorista" },
+        "phone": { "type": "string", "description": "Celular do motorista" },
+        "vehicleType": { "type": "string", "enum": ["Combustão", "Elétrico"], "description": "Tipo de combustível do veículo" },
+        "carModel": { "type": "string", "description": "Modelo do carro" },
+        "rankingOptIn": { "type": "boolean", "description": "Se o motorista quer aparecer no ranking" },
+        "weeklyEarnings": { "type": "number", "description": "Ganhos totais na semana atual" },
+        "monthlyEarnings": { "type": "number", "description": "Ganhos totais no mês atual" }
+      },
+      "required": ["nickname", "phone"]
+    },
+    "DailyRecord": {
+      "title": "DailyRecord",
+      "description": "Daily earnings and expenses for a driver",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string", "description": "ID do usuário (UID do Firebase Auth)" },
+        "date": { "type": "string", "format": "date", "description": "Data do registro (YYYY-MM-DD)" },
+        "expenses": {
+          "type": "object",
+          "properties": {
+            "food": { "type": "number" },
+            "fuel": { "type": "number" },
+            "maintenance": { "type": "number" }
+          }
+        },
+        "earnings": {
+          "type": "object",
+          "properties": {
+            "uber": { "type": "number" },
+            "99": { "type": "number" },
+            "indriver": { "type": "number" },
+            "zoop": { "type": "number" },
+            "muvi": { "type": "number" },
+            "private": { "type": "number" }
+          }
+        },
+        "totalPositive": { "type": "number" },
+        "totalNegative": { "type": "number" },
+        "balance": { "type": "number" }
+      },
+      "required": ["userId", "date"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "User",
+      "description": "User profiles"
+    },
+    "/daily_records/{recordId}": {
+      "schema": "DailyRecord",
+      "description": "Daily financial records"
+    }
+  }
+}
