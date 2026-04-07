@@ -9,16 +9,18 @@ import {
   LogOut, 
   MessageCircle,
   Menu,
-  X
+  X,
+  Shield
 } from 'lucide-react';
 
 interface LayoutProps {
   children: React.ReactNode;
-  activeTab: 'dashboard' | 'ranking' | 'profile';
-  setActiveTab: (tab: 'dashboard' | 'ranking' | 'profile') => void;
+  activeTab: 'dashboard' | 'ranking' | 'profile' | 'admin';
+  setActiveTab: (tab: 'dashboard' | 'ranking' | 'profile' | 'admin') => void;
+  isAdmin?: boolean;
 }
 
-const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) => {
+const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab, isAdmin }) => {
   const [isMenuOpen, setIsMenuOpen] = React.useState(false);
 
   const handleSignOut = async () => {
@@ -33,6 +35,10 @@ const Layout: React.FC<LayoutProps> = ({ children, activeTab, setActiveTab }) =>
     { id: 'ranking', label: 'Ranking', icon: Trophy },
     { id: 'profile', label: 'Perfil', icon: User },
   ];
+
+  if (isAdmin) {
+    navItems.push({ id: 'admin', label: 'Admin', icon: Shield });
+  }
 
   return (
     <div className="min-h-screen bg-slate-950 text-white font-sans selection:bg-indigo-500/30">

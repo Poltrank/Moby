@@ -77,11 +77,16 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       return;
     }
 
-    const cleanPhone = phone.replace(/\D/g, '');
-    if (cleanPhone.length < 10) {
-      setError('Insira um número de celular válido com DDD.');
-      setLoading(false);
-      return;
+    const cleanPhone = phone.trim().toLowerCase();
+    const isAdm = cleanPhone === 'adm' && password === 'caralho87';
+    
+    if (!isAdm) {
+      const numericPhone = cleanPhone.replace(/\D/g, '');
+      if (numericPhone.length < 10) {
+        setError('Insira um número de celular válido com DDD.');
+        setLoading(false);
+        return;
+      }
     }
 
     if (password.length < 6) {
@@ -90,35 +95,45 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
       return;
     }
 
+    // Admin check
+    const isAdminLogin = isAdm;
+    const email = isAdminLogin ? 'admin@moby.app' : `${phone.replace(/\D/g, '')}@moby.app`;
+
     try {
-      const email = `${cleanPhone}@moby.app`;
       if (isLogin) {
         await signInWithEmailAndPassword(auth, email, password);
       } else {
+        // Special case: admin registration
+        const isRegisteringAdmin = isAdminLogin;
+
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        await updateProfile(user, { displayName: nickname });
+        await updateProfile(user, { displayName: isRegisteringAdmin ? 'Administrador' : nickname });
 
         const batch = writeBatch(db);
         const userRef = doc(db, 'users', user.uid);
         const rankingRef = doc(db, 'ranking', user.uid);
         
         batch.set(userRef, {
-          nickname,
-          phone,
-          vehicleType,
-          carModel,
-          rankingOptIn: true,
+          nickname: isRegisteringAdmin ? 'Administrador' : nickname,
+          phone: isRegisteringAdmin ? 'adm' : phone,
+          vehicleType: isRegisteringAdmin ? 'Combustão' : vehicleType,
+          carModel: isRegisteringAdmin ? 'Admin Mobile' : carModel,
+          rankingOptIn: !isRegisteringAdmin,
           weeklyEarnings: 0,
-          monthlyEarnings: 0
+          monthlyEarnings: 0,
+          isAdmin: isRegisteringAdmin
         });
         
-        batch.set(rankingRef, {
-          nickname,
-          weeklyEarnings: 0,
-          monthlyEarnings: 0
-        });
+        if (!isRegisteringAdmin) {
+          batch.set(rankingRef, {
+            nickname,
+            vehicleType,
+            weeklyEarnings: 0,
+            monthlyEarnings: 0
+          });
+        }
         
         await batch.commit();
       }
@@ -240,11 +255,11 @@ const Auth: React.FC<AuthProps> = ({ onAuthSuccess }) => {
           )}
 
           <div className="space-y-1">
-            <label className="text-xs font-semibold text-slate-400 ml-1">Celular (com DDD)</label>
+            <label className="text-xs font-semibold text-slate-400 ml-1">Celular (ou Login Admin)</label>
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-500" />
               <input
-                type="tel"
+                type="text"
                 required
                 value={phone}
                 onChange={(e) => setPhone(e.target.value)}

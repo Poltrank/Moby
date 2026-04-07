@@ -7,6 +7,15 @@ export interface UserProfile {
   rankingOptIn: boolean;
   weeklyEarnings?: number;
   monthlyEarnings?: number;
+  isAdmin?: boolean;
+}
+
+export interface RankingEntry {
+  uid: string;
+  nickname: string;
+  vehicleType?: 'Combustão' | 'Elétrico';
+  weeklyEarnings: number;
+  monthlyEarnings: number;
 }
 
 export interface Expenses {

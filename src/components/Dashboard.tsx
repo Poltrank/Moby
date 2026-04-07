@@ -19,7 +19,8 @@ import {
   Car,
   DollarSign,
   X,
-  Check
+  Check,
+  Settings
 } from 'lucide-react';
 import { format, startOfWeek, endOfWeek, startOfMonth, endOfMonth, isWithinInterval, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -151,6 +152,7 @@ const Dashboard: React.FC = () => {
           // Sync to ranking collection
           batch.set(rankingRef, {
             nickname: userProfile.nickname,
+            vehicleType: userProfile.vehicleType || 'Combustão',
             weeklyEarnings: weeklyTotal,
             monthlyEarnings: monthlyTotal
           });
@@ -191,6 +193,13 @@ const Dashboard: React.FC = () => {
       } else {
         await addDoc(collection(db, 'daily_records'), recordData);
       }
+      
+      // Faster update: trigger ranking update immediately
+      const updatedRecords = editingRecord?.id 
+        ? records.map(r => r.id === editingRecord.id ? { ...r, ...recordData } : r)
+        : [{ ...recordData, id: 'temp' }, ...records];
+      
+      updateRankingTotals(updatedRecords);
       resetForm();
     } catch (error) {
       handleFirestoreError(error, 'write', 'daily_records');

@@ -1,13 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { db, auth, handleFirestoreError } from '../firebase';
 import { collection, query, where, orderBy, limit, onSnapshot } from 'firebase/firestore';
-import { UserProfile } from '../types';
+import { DailyRecord, UserProfile, RankingEntry } from '../types';
 import { motion, AnimatePresence } from 'motion/react';
-import { Trophy, Medal, Award, TrendingUp, Calendar, Users } from 'lucide-react';
+import { Trophy, Medal, Award, TrendingUp, Calendar, Users, Zap } from 'lucide-react';
 
 const Ranking: React.FC = () => {
-  const [weeklyRanking, setWeeklyRanking] = useState<UserProfile[]>([]);
-  const [monthlyRanking, setMonthlyRanking] = useState<UserProfile[]>([]);
+  const [weeklyRanking, setWeeklyRanking] = useState<RankingEntry[]>([]);
+  const [monthlyRanking, setMonthlyRanking] = useState<RankingEntry[]>([]);
   const [activeTab, setActiveTab] = useState<'weekly' | 'monthly'>('weekly');
   const [loading, setLoading] = useState(true);
 
@@ -23,7 +23,7 @@ const Ranking: React.FC = () => {
       const fetchedRanking = snapshot.docs.map(doc => {
         const data = doc.data();
         console.log('Ranking doc:', doc.id, data);
-        return { uid: doc.id, ...data } as UserProfile;
+        return { uid: doc.id, ...data } as RankingEntry;
       });
       if (activeTab === 'weekly') {
         setWeeklyRanking(fetchedRanking);
@@ -141,12 +141,24 @@ const Ranking: React.FC = () => {
                   'bg-slate-900/50 border-slate-800'
                 }`}
               >
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-3">
                   <div className="w-10 flex justify-center">
                     {getRankIcon(index)}
                   </div>
                   <div>
-                    <h4 className="text-white font-bold">{user.nickname}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="text-white font-bold">{user.nickname}</h4>
+                      {user.vehicleType && (
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[9px] font-bold uppercase tracking-wider ${
+                          user.vehicleType === 'Elétrico' 
+                            ? 'bg-yellow-500/10 text-yellow-500 border border-yellow-500/20' 
+                            : 'bg-indigo-500/10 text-indigo-500 border border-indigo-500/20'
+                        }`}>
+                          <Zap className={`w-2.5 h-2.5 ${user.vehicleType === 'Elétrico' ? 'fill-yellow-500' : ''}`} />
+                          {user.vehicleType}
+                        </div>
+                      )}
+                    </div>
                     <p className="text-slate-500 text-[10px] uppercase tracking-widest font-bold">Motorista Moby</p>
                   </div>
                 </div>

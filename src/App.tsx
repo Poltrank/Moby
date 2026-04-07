@@ -5,24 +5,59 @@ import Auth from './components/Auth';
 import Dashboard from './components/Dashboard';
 import Ranking from './components/Ranking';
 import Profile from './components/Profile';
+import AdminPanel from './components/AdminPanel';
 import Layout from './components/Layout';
 import ErrorBoundary from './components/ErrorBoundary';
 import { motion, AnimatePresence } from 'motion/react';
+import { doc, getDoc, onSnapshot } from 'firebase/firestore';
+import { db } from './firebase';
+import { UserProfile } from './types';
 
-type Tab = 'dashboard' | 'ranking' | 'profile';
+type Tab = 'dashboard' | 'ranking' | 'profile' | 'admin';
 
 export default function App() {
   const [user, setUser] = useState<User | null>(null);
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<Tab>('dashboard');
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
+    let unsubscribeProfile: (() => void) | undefined;
+
+    const unsubscribeAuth = onAuthStateChanged(auth, (user) => {
       setUser(user);
-      setLoading(false);
+      
+      if (unsubscribeProfile) {
+        unsubscribeProfile();
+        unsubscribeProfile = undefined;
+      }
+
+      if (user) {
+        // Use onSnapshot for real-time profile updates (important for Admin status)
+        unsubscribeProfile = onSnapshot(doc(db, 'users', user.uid), (docSnap) => {
+          if (docSnap.exists()) {
+            setProfile({ uid: docSnap.id, ...docSnap.data() } as UserProfile);
+          } else {
+            // Fallback for admin email even if doc doesn't exist yet
+            if (user.email === 'admin@moby.app' || user.email === 'cassiomatsuoka@gmail.com') {
+              setProfile({ isAdmin: true } as any);
+            }
+          }
+          setLoading(false);
+        }, (error) => {
+          console.error("Error listening to profile:", error);
+          setLoading(false);
+        });
+      } else {
+        setProfile(null);
+        setLoading(false);
+      }
     });
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeAuth();
+      if (unsubscribeProfile) unsubscribeProfile();
+    };
   }, []);
 
   if (loading) {
@@ -54,6 +89,8 @@ export default function App() {
         return <Ranking />;
       case 'profile':
         return <Profile />;
+      case 'admin':
+        return <AdminPanel />;
       default:
         return <Dashboard />;
     }
@@ -61,7 +98,7 @@ export default function App() {
 
   return (
     <ErrorBoundary>
-      <Layout activeTab={activeTab} setActiveTab={setActiveTab}>
+      <Layout activeTab={activeTab} setActiveTab={setActiveTab} isAdmin={profile?.isAdmin}>
         <AnimatePresence mode="wait">
           <motion.div
             key={activeTab}

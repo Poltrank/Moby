@@ -11,9 +11,21 @@
         "carModel": { "type": "string", "description": "Modelo do carro" },
         "rankingOptIn": { "type": "boolean", "description": "Se o motorista quer aparecer no ranking" },
         "weeklyEarnings": { "type": "number", "description": "Ganhos totais na semana atual" },
-        "monthlyEarnings": { "type": "number", "description": "Ganhos totais no mês atual" }
+        "monthlyEarnings": { "type": "number", "description": "Ganhos totais no mês atual" },
+        "isAdmin": { "type": "boolean", "description": "Se o usuário é administrador" }
       },
       "required": ["nickname", "phone"]
+    },
+    "RankingEntry": {
+      "title": "RankingEntry",
+      "description": "Public ranking information",
+      "type": "object",
+      "properties": {
+        "nickname": { "type": "string" },
+        "vehicleType": { "type": "string", "enum": ["Combustão", "Elétrico"] },
+        "weeklyEarnings": { "type": "number" },
+        "monthlyEarnings": { "type": "number" }
+      }
     },
     "DailyRecord": {
       "title": "DailyRecord",
